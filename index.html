@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITE INTEL — AI Progress Logger</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --yellow: #F5C500;
+  --black: #0A0A0A;
+  --dark: #141414;
+  --mid: #1E1E1E;
+  --border: #2A2A2A;
+  --muted: #888;
+  --white: #F0EDE6;
+  --green: #2ECC71;
+  --orange: #E67E22;
+  --red: #E74C3C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--black); color: var(--white); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+header { border-bottom: 2px solid var(--yellow); padding: 0 1.25rem; display: flex; align-items: center; justify-content: space-between; height: 56px; background: var(--black); position: sticky; top: 0; z-index: 10; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; letter-spacing: 0.08em; color: var(--yellow); }
+.logo span { color: var(--white); }
+.badge { font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; color: var(--muted); border: 1px solid var(--border); padding: 3px 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+main { max-width: 860px; margin: 0 auto; padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; }
+.panel { background: var(--dark); border: 1px solid var(--border); }
+.ph { border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; display: flex; align-items: center; gap: 0.6rem; }
+.sn { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; color: var(--yellow); }
+.pt { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); }
+.upload-area { padding: 1rem; }
+.drop { border: 2px dashed var(--border); padding: 2rem 1rem; text-align: center; cursor: pointer; transition: all 0.2s; position: relative; }
+.drop:hover { border-color: var(--yellow); background: rgba(245,197,0,0.04); }
+.drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.drop-icon { font-size: 2rem; display: block; margin-bottom: 0.75rem; }
+.drop-text { font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; color: var(--muted); line-height: 1.9; }
+.drop-text strong { color: var(--yellow); }
+#preview-wrap { display: none; margin-top: 1rem; position: relative; }
+#preview-img { width: 100%; max-height: 220px; object-fit: cover; border: 1px solid var(--border); display: block; }
+.preview-tag { position: absolute; top: 8px; left: 8px; background: var(--yellow); color: var(--black); font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; font-weight: 700; padding: 3px 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+.fields { padding: 0.85rem 1rem 0.5rem; display: flex; flex-direction: column; gap: 0.65rem; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+.field label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 0.56rem; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px; }
+.field input, .field select { width: 100%; background: var(--mid); border: 1px solid var(--border); color: var(--white); font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem; padding: 8px 10px; outline: none; -webkit-appearance: none; border-radius: 0; transition: border-color 0.2s; }
+.field input:focus, .field select:focus { border-color: var(--yellow); }
+.field select option { background: var(--dark); }
+.go-btn { display: block; margin: 0.85rem 1rem 1rem; width: calc(100% - 2rem); background: var(--yellow); color: var(--black); border: none; padding: 14px; font-family: 'Bebas Neue', sans-serif; font-size: 1.15rem; letter-spacing: 0.12em; cursor: pointer; transition: opacity 0.2s; }
+.go-btn:hover { opacity: 0.88; }
+.go-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+/* RESULTS */
+.results { background: var(--dark); border: 1px solid var(--border); min-height: 220px; display: flex; flex-direction: column; }
+.idle { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; text-align: center; gap: 0.75rem; }
+.idle-icon { font-size: 2.5rem; opacity: 0.15; }
+.idle-text { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; line-height: 2; }
+.loading { flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; gap: 1.25rem; }
+.spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--yellow); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--yellow); letter-spacing: 0.15em; text-transform: uppercase; animation: pulse 1.5s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.result-view { display: none; flex-direction: column; }
+.rpt-meta { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.rpt-id { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--yellow); letter-spacing: 0.1em; }
+.rpt-ts { font-family: 'IBM Plex Mono', monospace; font-size: 0.56rem; color: var(--muted); }
+.overall { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+.overall-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.3rem; color: var(--yellow); line-height: 1; }
+.overall-lbl { font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; line-height: 1.9; }
+.rpt-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.7rem; }
+.summary { border: 1px solid var(--yellow); padding: 0.85rem 1rem; background: rgba(245,197,0,0.04); }
+.summary-lbl { font-family: 'IBM Plex Mono', monospace; font-size: 0.56rem; color: var(--yellow); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.4rem; }
+.summary-txt { font-size: 0.82rem; color: var(--white); line-height: 1.7; }
+.trade { border-left: 3px solid var(--border); padding: 0.7rem 0.9rem; background: var(--mid); }
+.trade-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.3rem; }
+.trade-name { font-weight: 600; font-size: 0.87rem; color: var(--white); flex: 1; }
+.trade-badge { font-family: 'IBM Plex Mono', monospace; font-size: 0.53rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 7px; font-weight: 600; white-space: nowrap; }
+.trade-pct { font-family: 'IBM Plex Mono', monospace; font-size: 0.66rem; color: var(--muted); margin-bottom: 0.35rem; }
+.bar-bg { background: var(--border); height: 3px; margin-bottom: 0.5rem; }
+.bar-fill { height: 3px; transition: width 0.8s ease; }
+.trade-notes { font-size: 0.75rem; color: var(--muted); line-height: 1.55; }
+.export-row { display: flex; gap: 0.6rem; padding: 0.85rem 1rem; border-top: 1px solid var(--border); }
+.exp-btn { flex: 1; background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 0.56rem; letter-spacing: 0.08em; text-transform: uppercase; padding: 9px 4px; cursor: pointer; transition: all 0.2s; }
+.exp-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+.err-box { margin: 1rem; border: 1px solid var(--red); padding: 1rem; background: rgba(231,76,60,0.08); }
+.err-title { font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; color: var(--red); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.4rem; }
+.err-msg { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+.key-note { margin: 0.75rem 1rem; padding: 0.75rem 1rem; background: rgba(245,197,0,0.06); border: 1px solid rgba(245,197,0,0.2); font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--muted); line-height: 1.8; }
+.key-note strong { color: var(--yellow); }
+.key-input { width: 100%; background: var(--mid); border: 1px solid var(--border); color: var(--white); font-family: 'IBM Plex Mono', monospace; font-size: 0.72rem; padding: 8px 10px; outline: none; margin-top: 0.5rem; border-radius: 0; }
+.key-input:focus { border-color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">SITE<span>INTEL</span></div>
+  <div class="badge">AI Progress Logger v1.0</div>
+</header>
+
+<main>
+
+  <div class="panel">
+    <div class="ph"><span class="sn">01</span><span class="pt">Upload Job Site Photo</span></div>
+    <div class="upload-area">
+      <div class="drop" id="drop" onclick="document.getElementById('file-input').click()">
+        <input type="file" id="file-input" accept="image/*" style="display:none">
+        <span class="drop-icon">📷</span>
+        <div class="drop-text"><strong>Tap to upload</strong> or drag photo here<br>From Meta glasses, phone, or tablet<br>JPG · PNG · HEIC</div>
+      </div>
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="preview">
+        <div class="preview-tag">Captured Frame</div>
+      </div>
+    </div>
+
+```
+<div class="ph"><span class="sn">02</span><span class="pt">Job Info</span></div>
+<div class="fields">
+  <div class="row">
+    <div class="field"><label>Job Name / Address</label><input id="job-name" type="text" placeholder="e.g. 142 W 57th St"></div>
+    <div class="field"><label>Floor / Zone</label><input id="floor" type="text" placeholder="e.g. Floor 4"></div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Foreman</label><input id="foreman" type="text" placeholder="Your name"></div>
+    <div class="field"><label>Phase</label>
+      <select id="phase">
+        <option value="rough">Rough / Framing</option>
+        <option value="mep">MEP Rough-In</option>
+        <option value="insulation">Insulation</option>
+        <option value="drywall">Drywall / Finishing</option>
+        <option value="finishes">Finishes / Trim</option>
+        <option value="closeout">Closeout / Punch</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="key-note">
+  <strong>API Key</strong> — Enter your Anthropic key below. Get one free at console.anthropic.com<br>
+  <input class="key-input" id="api-key" type="password" placeholder="sk-ant-...">
+</div>
+
+<button class="go-btn" id="go-btn" onclick="analyze()" disabled>⚡ ANALYZE PHOTO</button>
+```
+
+  </div>
+
+  <div class="results" id="results">
+    <div class="ph"><span class="sn">03</span><span class="pt">AI Progress Report</span></div>
+    <div class="idle" id="idle">
+      <div class="idle-icon">🏗️</div>
+      <div class="idle-text">Upload a photo<br>to generate your report</div>
+    </div>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div class="loading-txt">Analyzing Site Conditions…</div>
+    </div>
+    <div class="result-view" id="result-view">
+      <div class="rpt-meta"><span class="rpt-id" id="rpt-id">—</span><span class="rpt-ts" id="rpt-ts">—</span></div>
+      <div class="overall"><div class="overall-num" id="overall-num">—%</div><div class="overall-lbl">Overall Estimated<br>Completion</div></div>
+      <div class="rpt-body" id="rpt-body"></div>
+      <div class="export-row">
+        <button class="exp-btn" onclick="exportTxt()">⬇ Report</button>
+        <button class="exp-btn" onclick="exportCSV()">⬇ CSV</button>
+        <button class="exp-btn" onclick="resetAll()">↺ New Log</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let imgB64 = null, imgType = null, reportData = null;
+
+// File input
+document.getElementById('file-input').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+// Drag and drop
+const drop = document.getElementById('drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.style.borderColor = '#F5C500'; });
+drop.addEventListener('dragleave', () => { drop.style.borderColor = '#2A2A2A'; });
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.style.borderColor = '#2A2A2A';
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+// Enable button when both image and key present
+document.getElementById('api-key').addEventListener('input', checkReady);
+
+function checkReady() {
+  const hasImg = !!imgB64;
+  const hasKey = document.getElementById('api-key').value.trim().length > 10;
+  document.getElementById('go-btn').disabled = !(hasImg && hasKey);
+}
+
+function handleFile(file) {
+  let mt = file.type;
+  if (!['image/jpeg','image/png','image/gif','image/webp'].includes(mt)) mt = 'image/jpeg';
+  imgType = mt;
+  const url = URL.createObjectURL(file);
+  const img = document.getElementById('preview-img');
+  img.src = url;
+  document.getElementById('preview-wrap').style.display = 'block';
+  const reader = new FileReader();
+  reader.onload = e => { imgB64 = e.target.result.split(',')[1]; checkReady(); };
+  reader.readAsDataURL(file);
+}
+
+function setState(s) {
+  document.getElementById('idle').style.display         = s === 'idle'    ? 'flex' : 'none';
+  document.getElementById('loading').style.display      = s === 'loading' ? 'flex' : 'none';
+  document.getElementById('result-view').style.display  = s === 'result'  ? 'flex' : 'none';
+}
+
+async function analyze() {
+  if (!imgB64) return;
+  const apiKey = document.getElementById('api-key').value.trim();
+  if (!apiKey) return;
+
+  setState('loading');
+  document.getElementById('go-btn').disabled = true;
+
+  const jobName = document.getElementById('job-name').value || 'Unknown';
+  const floor   = document.getElementById('floor').value   || 'Unspecified';
+  const foreman = document.getElementById('foreman').value || 'Unspecified';
+  const phase   = document.getElementById('phase').value;
+
+  const system = `You are a construction site progress inspector with 20 years NYC experience. Analyze the photo and return ONLY raw JSON — no markdown, no explanation, start with { end with }.
+
+{"overall_pct":75,"summary":"2-3 sentence foreman-style summary.","trades":[{"name":"Steel Framing","status":"complete","pct":100,"notes":"Specific observation."}]}
+
+Rules: overall_pct integer 0-100. 7-10 trades. status exactly: complete, partial, not-started, or not-visible. pct integer. Write like an NYC foreman.`;
+
+  const userMsg = `Job: ${jobName}\nZone: ${floor}\nForeman: ${foreman}\nPhase: ${phase}\n\nAnalyze this photo. Return only JSON.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 1500,
+        system,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: imgType, data: imgB64 } },
+            { type: 'text', text: userMsg }
+          ]
+        }]
+      })
+    });
+
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error('API error ' + res.status + ': ' + t.slice(0, 200));
+    }
+
+    const data = await res.json();
+    const raw = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('');
+    const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Could not parse response: ' + raw.slice(0, 200));
+
+    const parsed = JSON.parse(match[0]);
+    if (!Array.isArray(parsed.trades)) throw new Error('Invalid response structure');
+
+    reportData = { ...parsed, jobName, floor, foreman, id: 'RPT-' + Math.floor(Math.random()*900000+100000), ts: new Date().toLocaleString() };
+    renderReport(reportData);
+
+  } catch(e) {
+    showError(e.message);
+  }
+
+  document.getElementById('go-btn').disabled = false;
+}
+
+const STATUS = {
+  'complete':     { border:'#2ECC71', fill:'#2ECC71', bg:'rgba(46,204,113,0.12)',  color:'#2ECC71' },
+  'partial':      { border:'#E67E22', fill:'#E67E22', bg:'rgba(230,126,34,0.12)',  color:'#E67E22' },
+  'not-started':  { border:'#E74C3C', fill:'#E74C3C', bg:'rgba(231,76,60,0.12)',   color:'#E74C3C' },
+  'not-visible':  { border:'#333',    fill:'#444',    bg:'rgba(136,136,136,0.12)', color:'#888'    },
+};
+
+function renderReport(r) {
+  document.getElementById('rpt-id').textContent = r.id;
+  document.getElementById('rpt-ts').textContent = r.ts;
+  document.getElementById('overall-num').textContent = (r.overall_pct ?? 0) + '%';
+
+  const body = document.getElementById('rpt-body');
+  body.innerHTML = '';
+
+  // Summary
+  const s = document.createElement('div');
+  s.className = 'summary';
+  s.innerHTML = `<div class="summary-lbl">Foreman's Overview</div><div class="summary-txt">${r.summary||''}</div>`;
+  body.appendChild(s);
+
+  // Trades
+  const valid = ['complete','partial','not-started','not-visible'];
+  r.trades.forEach((t, i) => {
+    const raw = (t.status||'not-visible').toLowerCase().replace(/\s+/g,'-');
+    const status = valid.includes(raw) ? raw : 'not-visible';
+    const cfg = STATUS[status];
+    const pct = Math.min(100, Math.max(0, typeof t.pct==='number' ? t.pct : 0));
+
+    const el = document.createElement('div');
+    el.className = 'trade';
+    el.style.borderLeftColor = cfg.border;
+    el.style.animationDelay = i*0.07+'s';
+    el.innerHTML = `
+      <div class="trade-top">
+        <span class="trade-name">${t.name||'Unknown'}</span>
+        <span class="trade-badge" style="background:${cfg.bg};color:${cfg.color}">${status.replace(/-/g,' ')}</span>
+      </div>
+      <div class="trade-pct">${pct}% complete</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${pct}%;background:${cfg.fill}"></div></div>
+      <div class="trade-notes">${t.notes||''}</div>`;
+    body.appendChild(el);
+  });
+
+  setState('result');
+}
+
+function showError(msg) {
+  const body = document.getElementById('rpt-body');
+  body.innerHTML = `<div class="err-box"><div class="err-title">Analysis Failed</div><div class="err-msg">${msg}</div></div>`;
+  document.getElementById('overall-num').textContent = '—';
+  document.getElementById('rpt-id').textContent = 'ERROR';
+  document.getElementById('rpt-ts').textContent = new Date().toLocaleTimeString();
+  setState('result');
+}
+
+function exportTxt() {
+  if (!reportData) return;
+  let t = `SITE INTEL — PROGRESS REPORT\n${'='.repeat(40)}\nJob: ${reportData.jobName}\nZone: ${reportData.floor}\nForeman: ${reportData.foreman}\nDate: ${reportData.ts}\nOverall: ${reportData.overall_pct}%\n\nOVERVIEW\n${'-'.repeat(30)}\n${reportData.summary}\n\nTRADE STATUS\n${'-'.repeat(30)}\n`;
+  reportData.trades.forEach(tr => { t += `\n[${tr.pct}%] ${(tr.name||'').toUpperCase()} — ${(tr.status||'').toUpperCase()}\n  ${tr.notes}\n`; });
+  dl('siteintel-report.txt', 'text/plain', t);
+}
+
+function exportCSV() {
+  if (!reportData) return;
+  const rows = [['Trade','Status','% Complete','Notes'], ...reportData.trades.map(t=>[t.name,t.status,t.pct+'%',t.notes])];
+  dl('siteintel-report.csv', 'text/csv', rows.map(r=>r.map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n'));
+}
+
+function dl(name, type, content) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content],{type}));
+  a.download = name; a.click();
+}
+
+function resetAll() {
+  imgB64 = null; imgType = null; reportData = null;
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+  document.getElementById('file-input').value = '';
+  document.getElementById('go-btn').disabled = true;
+  setState('idle');
+}
+
+setState('idle');
+</script>
+
+</body>
+</html>
